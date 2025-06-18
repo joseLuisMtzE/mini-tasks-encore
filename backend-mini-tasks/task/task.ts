@@ -25,56 +25,21 @@ interface ErrorResponse {
 const tasks: Task[] = [
     {
       id: "1",
-      title: "Hacer la compra",
+      title: "Example Task",
       description: "Comprar frutas y verduras",
       priority: "medium",
       completed: false
     },
     {
       id: "2", 
-      title: "Estudiar React",
+      title: "Example Task completed",
       description: "Repasar hooks y componentes",
       priority: "high",
       completed: true
     },
  
   ]
-// export const list = api({
-//   expose: true,
-//   method: "GET",
-//   path: "/tasks"
-// },
-//  async () => {
-//     console.log('Accediendo a /tasks');
-//     return { tasks };
-//   }
-// )
 
-// export const create = api({expose:true,
-//   method: "POST",
-//   path: "/tasks"
-// },
-//  async (task: Task) => {
-//     const formattedTask: Task = {
-//         // id: Math.random().toString(36).substring(2),
-//         ...task,
-//       }
-//     tasks.push(formattedTask)
-//     return formattedTask
-//   }
-// )
-
-// export const completeTask = api({
-//     method: "PUT",
-//     path: "/tasks/:id/complete"},
-//     async ({ id }: { id: string }) => {
-//       const task = tasks.find((t) => t.id === id)
-//       if (task) {
-//         task.completed = true
-//       }
-//       return task ?? { error: "Task not found" }
-//     },
-//   )
 export const get = api(
     { expose: true, method: "GET", path: "/helloo/:name" },
     async ({ name }: { name: string }): Promise<{message: string}> => {
@@ -112,6 +77,7 @@ export const get = api(
       }
     }
   )
+
 
   type CreateTaskRequest = Omit<Task, "id" | "completed">;
 
