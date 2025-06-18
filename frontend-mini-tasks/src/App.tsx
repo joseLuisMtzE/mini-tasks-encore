@@ -10,6 +10,7 @@ type Task = {
 }
 
 const API_URL = "http://127.0.0.1:4000"
+
 function App() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [form, setForm] = useState({
