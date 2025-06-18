@@ -39,6 +39,10 @@ function App() {
   }
 
   const createTask = async () => {
+    if (form.title === "") {
+      alert("El título es requerido")
+      return
+    }
     const res = await fetch(`${API_URL}/tasks`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
