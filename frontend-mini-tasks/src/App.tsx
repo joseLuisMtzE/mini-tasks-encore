@@ -24,7 +24,6 @@ function App() {
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/tasks`)
-      console.log(res)
       if (!res.ok) {
         throw new Error(`HTTP error! status: ${res.status}`)
       }

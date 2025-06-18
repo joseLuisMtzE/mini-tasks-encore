@@ -94,7 +94,6 @@ export const get = api(
    */
   export const create = api({expose:true, method:"POST", path:"/tasks"},
     async (req: CreateTaskRequest): Promise<Task> => {
-      console.log(req)
       const task: Task = {
         id: Math.random().toString(36).substring(2),
         title: req.title,
@@ -102,7 +101,6 @@ export const get = api(
         priority: req.priority,
         completed: false, 
       };
-      console.log(task)
       tasks.push(task)
       return task
     }
@@ -116,7 +114,6 @@ export const get = api(
    */
   export const update = api({expose:true, method:"PUT", path:"/tasks/:id"},
     async ({ id,completed }: { id: string,completed: boolean }): Promise<Task> => {
-      console.log(id)
       const task = tasks.find((t) => t.id === id)
       if (task) {
         task.completed = completed
