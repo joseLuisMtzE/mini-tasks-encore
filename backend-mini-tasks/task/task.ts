@@ -78,9 +78,20 @@ export const get = api(
     }
   )
 
-
+  /**
+   * Define el tipo de datos para crear una nueva tarea
+   * @typedef {Object} CreateTaskRequest
+   * @property {string} title - Título de la tarea
+   * @property {string} [description] - Descripción opcional de la tarea
+   * @property {"low" | "medium" | "high"} priority - Prioridad de la tarea
+   */
   type CreateTaskRequest = Omit<Task, "id" | "completed">;
 
+  /**
+   * Crea una nueva tarea
+   * @param req - Datos de la tarea a crear
+   * @returns La tarea creada
+   */
   export const create = api({expose:true, method:"POST", path:"/tasks"},
     async (req: CreateTaskRequest): Promise<Task> => {
       console.log(req)
@@ -97,6 +108,12 @@ export const get = api(
     }
   )
 
+  /**
+   * Actualiza el estado de una tarea
+   * @param id - ID de la tarea a actualizar
+   * @param completed - Nuevo estado de la tarea
+   * @returns La tarea actualizada
+   */
   export const update = api({expose:true, method:"PUT", path:"/tasks/:id"},
     async ({ id,completed }: { id: string,completed: boolean }): Promise<Task> => {
       console.log(id)
@@ -112,6 +129,10 @@ export const get = api(
     }
   )
 
+  /**
+   * Elimina una tarea
+   * @param id - ID de la tarea a eliminar
+   */
   export const deleteTask = api({expose:true, method:"DELETE", path:"/tasks/:id"},
     async ({ id }: { id: string }): Promise<void> => {
       const index = tasks.findIndex((t) => t.id === id)
