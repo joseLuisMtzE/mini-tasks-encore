@@ -91,11 +91,24 @@ function App() {
               placeholder="Título"
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  const nextInput = (e.target as HTMLElement).nextElementSibling;
+                  if (nextInput) {
+                    (nextInput as HTMLElement).focus();
+                  }
+                }
+              }}
             />
             <input
               placeholder="Descripción"
               value={form.description}
               onChange={(e) => setForm({ ...form, description: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  createTask()
+                }
+              }}
             />
             <select
               value={form.priority}
