@@ -1,4 +1,5 @@
 import { api } from "encore.dev/api";
+import { db } from "./task.db";
 
 type Priority = "low" | "medium" | "high"
 
@@ -22,52 +23,32 @@ interface ErrorResponse {
   code: string
 }
 
-const tasks: Task[] = [
-    {
-      id: "1",
-      title: "Example Task",
-      description: "Comprar frutas y verduras",
-      priority: "medium",
-      completed: false
-    },
-    {
-      id: "2", 
-      title: "Example Task completed",
-      description: "Repasar hooks y componentes",
-      priority: "high",
-      completed: true
-    },
- 
-  ]
+type CreateTaskRequest = Omit<Task, "id" | "completed">;
 
-export const get = api(
-    { expose: true, method: "GET", path: "/helloo/:name" },
-    async ({ name }: { name: string }): Promise<{message: string}> => {
-      const msg = `Hello ${name}!`;
-      return { message: msg };
-    }
-  );
-  
   /**
    * Obtiene la lista de tareas ordenadas por prioridad
    * @returns ListTasksResponse - Lista de tareas con metadatos
    */
   export const list = api({expose:true, method:"GET", path:"/tasks"},
     async (): Promise<ListTasksResponse> => {
+      const tasks = await db.rawQueryAll<Task>(`
+        SELECT id, title, description, priority, completed
+        FROM tasks
+        ORDER BY CASE priority
+                   WHEN 'high'   THEN 3
+                   WHEN 'medium' THEN 2
+                   WHEN 'low'    THEN 1
+                 END DESC
+      `);
+      
       try {
-        const sortedTasks = tasks.sort((a, b) => {
-          const order = { high: 3, medium: 2, low: 1 }
-          return order[b.priority] - order[a.priority]
-        })
-
-        const completed = sortedTasks.filter(task => task.completed).length
-        const pending = sortedTasks.length - completed
+        const completed = tasks.filter(task => task.completed).length
 
         return {
-          tasks: sortedTasks,
-          total: sortedTasks.length,
+          tasks,
+          total: tasks.length,
           completed,
-          pending
+          pending: tasks.length - completed
         }
       } catch (error) {
         throw {
@@ -85,7 +66,6 @@ export const get = api(
    * @property {string} [description] - Descripción opcional de la tarea
    * @property {"low" | "medium" | "high"} priority - Prioridad de la tarea
    */
-  type CreateTaskRequest = Omit<Task, "id" | "completed">;
 
   /**
    * Crea una nueva tarea
@@ -94,15 +74,20 @@ export const get = api(
    */
   export const create = api({expose:true, method:"POST", path:"/tasks"},
     async (req: CreateTaskRequest): Promise<Task> => {
-      const task: Task = {
-        id: Math.random().toString(36).substring(2),
-        title: req.title,
-        description: req.description,
-        priority: req.priority,
-        completed: false, 
-      };
-      tasks.push(task)
-      return task
+      const task = await db.rawQueryRow<Task>(`
+        INSERT INTO tasks (title, description, priority)
+        VALUES ($1, $2, $3)
+        RETURNING id, title, description, priority, completed
+
+      `,req.title, req.description ?? null, req.priority);
+     
+      if (!task) {
+        throw <ErrorResponse>{
+          error: "Error al crear la tarea",
+          code: "TASK_CREATION_ERROR",
+        };
+      }
+      return task;
     }
   )
 
@@ -113,16 +98,20 @@ export const get = api(
    * @returns La tarea actualizada
    */
   export const update = api({expose:true, method:"PUT", path:"/tasks/:id"},
-    async ({ id,completed }: { id: string,completed: boolean }): Promise<Task> => {
-      const task = tasks.find((t) => t.id === id)
-      if (task) {
-        task.completed = completed
-        return task
+    async ({ id, completed }: { id: string,completed: boolean }): Promise<Task> => {
+      const task = await db.rawQueryRow<Task>(`
+        UPDATE tasks
+        SET completed = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, title, description, priority, completed
+      `, completed, id)
+      if (!task) {
+        throw <ErrorResponse>{
+          error: "Task not found",
+          code: "TASK_NOT_FOUND",
+        };
       }
-      throw {
-        error: "Task not found",
-        code: "TASK_NOT_FOUND"
-      } as ErrorResponse
+      return task;
     }
   )
 
@@ -132,9 +121,6 @@ export const get = api(
    */
   export const deleteTask = api({expose:true, method:"DELETE", path:"/tasks/:id"},
     async ({ id }: { id: string }): Promise<void> => {
-      const index = tasks.findIndex((t) => t.id === id)
-      if (index !== -1) {
-        tasks.splice(index, 1)
-      }
+      await db.rawExec("DELETE FROM tasks WHERE id = $1", id);
     }
   )
