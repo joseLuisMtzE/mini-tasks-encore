@@ -103,25 +103,86 @@ export const list = api.raw(
 /**
  * Crea una nueva tarea para el usuario autenticado
  */
-export const create = api(
+export const create = api.raw(
   { expose: true, method: "POST", path: "/tasks" },
-  withAuth(async (req: CreateTaskRequestWithAuth, auth: AuthContext): Promise<Task> => {
+  async (req, resp) => {
     try {
-      const task = await db.queryRow<Task>`
-        INSERT INTO tasks (title, description, priority, user_id)
-        VALUES (${req.title}, ${req.description ?? null}, ${req.priority}, ${auth.user_id})
-        RETURNING id, title, description, priority, completed, user_id, created_at, updated_at
-      `;
-
-      if (!task) {
-        throw APIError.internal("Error al crear la tarea");
+      // Extraer token del header Authorization
+      const authHeader = req.headers.authorization;
+      
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        resp.writeHead(401, { "Content-Type": "application/json" });
+        resp.end(JSON.stringify({ 
+          code: "unauthenticated", 
+          message: "Token de autorización requerido" 
+        }));
+        return;
       }
-      return task;
+
+      const token = authHeader.substring(7); // Remover "Bearer "
+      
+      // Verificar token
+      const payload = AuthService.verifyToken(token);
+      
+      // Leer el body de la petición
+      let body = '';
+      req.on('data', chunk => {
+        body += chunk.toString();
+      });
+      
+      req.on('end', async () => {
+        try {
+          const { title, description, priority } = JSON.parse(body);
+          
+          // Validar campos requeridos
+          if (!title) {
+            resp.writeHead(400, { "Content-Type": "application/json" });
+            resp.end(JSON.stringify({ 
+              code: "invalid_argument", 
+              message: "El título es requerido" 
+            }));
+            return;
+          }
+          
+          // Crear la tarea
+          const task = await db.queryRow<Task>`
+            INSERT INTO tasks (title, description, priority, user_id)
+            VALUES (${title}, ${description ?? null}, ${priority ?? 'medium'}, ${payload.user_id})
+            RETURNING id, title, description, priority, completed, user_id, created_at, updated_at
+          `;
+
+          if (!task) {
+            resp.writeHead(500, { "Content-Type": "application/json" });
+            resp.end(JSON.stringify({ 
+              code: "internal", 
+              message: "Error al crear la tarea" 
+            }));
+            return;
+          }
+
+          resp.writeHead(201, { "Content-Type": "application/json" });
+          resp.end(JSON.stringify(task));
+          
+        } catch (parseError) {
+          console.error("Error parseando body en create:", parseError);
+          resp.writeHead(400, { "Content-Type": "application/json" });
+          resp.end(JSON.stringify({ 
+            code: "invalid_argument", 
+            message: "Body de la petición inválido" 
+          }));
+        }
+      });
+      
     } catch (error) {
-      console.error("Error al crear tarea:", error);
-      throw APIError.internal("Error al crear la tarea");
+      console.error("Error en endpoint create:", error);
+      resp.writeHead(500, { "Content-Type": "application/json" });
+      resp.end(JSON.stringify({ 
+        code: "internal", 
+        message: "Error interno del servidor",
+        details: error instanceof Error ? error.message : "Error desconocido"
+      }));
     }
-  })
+  }
 );
 
 /**
