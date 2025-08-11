@@ -70,20 +70,11 @@ export class AuthService {
    * Verifica y decodifica un token JWT
    */
   static verifyToken(token: string): JWTPayload {
-    console.log('verifyToken() llamado con token (primeros 20 chars):', token.substring(0, 20) + '...');
-    console.log('verifyToken() - Longitud del token:', token.length);
-    
     try {
-      console.log('verifyToken() - JWT_SECRET disponible:', !!JWT_SECRET());
-      console.log('verifyToken() - JWT_SECRET longitud:', JWT_SECRET().length);
-      
       const payload = jwt.verify(token, JWT_SECRET(), JWT_OPTIONS) as JWTPayload;
-      console.log('verifyToken() - Token verificado exitosamente');
-      console.log('verifyToken() - Payload extraído:', payload);
-      
       return payload;
     } catch (error) {
-      console.error('verifyToken() - ERROR verificando token:', error);
+      console.error('Error verificando token:', error);
       throw error;
     }
   }
