@@ -32,20 +32,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
-    // Verificar token al cargar la aplicación
-    const checkAuth = async () => {
+    // Verificación inicial al cargar la aplicación
+    const initializeAuth = async () => {
       try {
-        const currentUser = await authService.verifyToken();
-        setUser(currentUser);
+        // Primero intentar obtener del almacenamiento
+        const storedUser = authService.getUser();
+        const storedToken = authService.getToken();
+        
+        if (storedUser && storedToken) {
+          // Verificar que el token sea válido
+          const currentUser = await authService.verifyToken();
+          
+          if (currentUser) {
+            setUser(currentUser);
+          } else {
+            // Token inválido, limpiar
+            authService.logout();
+          }
+        }
       } catch (error) {
-        console.error('Error verificando autenticación:', error);
+        console.error('Error inicializando autenticación:', error);
+        // En caso de error, limpiar datos corruptos
+        authService.logout();
       } finally {
         setLoading(false);
         setInitialized(true);
       }
     };
 
-    checkAuth();
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -61,24 +76,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const register = async (email: string, password: string) => {
     try {
       const response = await authService.register({ email, password });
-      
-      // Verificar que el token se guardó correctamente
-      const storedToken = authService.getToken();
-      
-      if (!storedToken) {
-        throw new Error('Error al guardar el token de autenticación');
-      }
-      
-      // Pequeño delay para asegurar que localStorage esté sincronizado
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Verificar nuevamente después del delay
-      const finalToken = authService.getToken();
-      
-      if (!finalToken) {
-        throw new Error('Error al guardar el token de autenticación');
-      }
-      
       setUser(response.user);
     } catch (error) {
       console.error('Error en register:', error);

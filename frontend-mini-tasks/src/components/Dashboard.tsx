@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useSession } from '../hooks/useSession';
 import { taskService } from '../services/taskService';
 import type { Task, CreateTaskRequest } from '../types/auth';
-import { authService } from '../services/authService';
 
 export const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  
+  // Hook para manejar la sesión general (incluye verificación de tokens)
+  const { checkSession } = useSession({
+    checkInterval: 5 * 60 * 1000, // Verificar cada 5 minutos
+    autoRefresh: true,
+    onSessionExpired: () => {
+      logout();
+    }
+  });
+  
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -18,62 +28,26 @@ export const Dashboard: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      // Verificar que también tenemos un token válido
-      const token = authService.getToken();
-      
-      if (token) {
-        loadTasks();
-      } else {
-        setError('Error de autenticación: Token no disponible');
-        setLoading(false);
-      }
+      loadTasks();
     } else {
       setLoading(false);
     }
   }, [user]);
 
-  // Efecto adicional para verificar el token periódicamente si no está disponible
-  useEffect(() => {
-    if (user && !authService.getToken()) {
-      // Intentar verificar el token cada 500ms hasta que esté disponible
-      const checkTokenInterval = setInterval(() => {
-        const token = authService.getToken();
-        
-        if (token) {
-          clearInterval(checkTokenInterval);
-          loadTasks();
-        }
-      }, 500);
-      
-      // Limpiar el intervalo después de 5 segundos para evitar loops infinitos
-      setTimeout(() => {
-        clearInterval(checkTokenInterval);
-        if (!authService.getToken()) {
-          setError('Error de autenticación: Token no disponible después de 5 segundos');
-          setLoading(false);
-        }
-      }, 5000);
-      
-      return () => clearInterval(checkTokenInterval);
-    }
-  }, [user]);
-
   const loadTasks = async () => {
-    // Verificar que tenemos un token antes de hacer la petición
-    const token = authService.getToken();
-    
-    if (!token) {
-      setError('No hay token de autenticación disponible');
-      setLoading(false);
-      return;
-    }
-    
     try {
       setLoading(true);
+      setError('');
       const tasksData = await taskService.getTasks();
       setTasks(tasksData);
     } catch (err) {
       console.error('Error cargando tareas:', err);
+      
+      // Si es un error de autenticación, verificar la sesión
+      if (err instanceof Error && err.message.includes('401')) {
+        await checkSession();
+      }
+      
       setError(err instanceof Error ? err.message : 'Error al cargar las tareas');
     } finally {
       setLoading(false);
@@ -83,22 +57,38 @@ export const Dashboard: React.FC = () => {
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setError('');
       const createdTask = await taskService.createTask(newTask);
       setTasks([...tasks, createdTask]);
       setNewTask({ title: '', description: '', priority: 'medium' });
       setShowCreateForm(false);
     } catch (err) {
+      console.error('Error creando tarea:', err);
+      
+      // Si es un error de autenticación, verificar la sesión
+      if (err instanceof Error && err.message.includes('401')) {
+        await checkSession();
+      }
+      
       setError(err instanceof Error ? err.message : 'Error al crear la tarea');
     }
   };
 
   const handleToggleTask = async (taskId: string, completed: boolean) => {
     try {
+      setError('');
       const updatedTask = await taskService.updateTask(taskId, completed);
       setTasks(tasks.map(task => 
         task.id === taskId ? updatedTask : task
       ));
     } catch (err) {
+      console.error('Error actualizando tarea:', err);
+      
+      // Si es un error de autenticación, verificar la sesión
+      if (err instanceof Error && err.message.includes('401')) {
+        await checkSession();
+      }
+      
       setError(err instanceof Error ? err.message : 'Error al actualizar la tarea');
     }
   };

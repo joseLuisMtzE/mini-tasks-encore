@@ -1,4 +1,4 @@
-import { api } from "encore.dev/api";
+import { api, Header } from "encore.dev/api";
 import { APIError, ErrCode } from "encore.dev/api";
 import { AuthService } from "./auth.service";
 import { 
@@ -143,28 +143,47 @@ export const me = api(
     method: "GET", 
     path: "/auth/me" 
   },
-  async (req: { authorization: string }): Promise<UserResponse> => {
+  async (req: { authorization: Header<"Authorization"> }): Promise<UserResponse> => {
     const { authorization } = req;
     
+    console.log("🔍 Endpoint /me llamado con authorization:", authorization ? "Presente" : "Ausente");
+    
     if (!authorization || !authorization.startsWith("Bearer ")) {
+      console.log("❌ Error: Token de autorización requerido o formato incorrecto");
       throw APIError.unauthenticated("Token de autorización requerido");
     }
 
     const token = authorization.substring(7);
+    console.log("🔑 Token extraído, longitud:", token.length);
     
     try {
+      console.log("🔍 Verificando token...");
       const payload = AuthService.verifyToken(token);
+      console.log("✅ Token verificado, payload:", payload);
+      
+      console.log("🔍 Buscando usuario con ID:", payload.user_id);
       const user = await AuthService.findById(payload.user_id);
       
       if (!user) {
+        console.log("❌ Usuario no encontrado con ID:", payload.user_id);
         throw APIError.notFound("Usuario no encontrado");
       }
 
+      console.log("✅ Usuario encontrado:", user.email);
       return AuthService.toUserResponse(user);
     } catch (error) {
+      console.error("❌ Error en endpoint /me:", error);
+      
       if (error instanceof APIError) {
         throw error;
       }
+      
+      // Proporcionar más información sobre el error
+      if (error instanceof Error) {
+        console.error("❌ Error detallado:", error.message);
+        console.error("❌ Stack trace:", error.stack);
+      }
+      
       throw APIError.unauthenticated("Token inválido o expirado");
     }
   }

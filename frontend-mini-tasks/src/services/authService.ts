@@ -26,27 +26,32 @@ class AuthService {
     }
   }
 
+  // Verificar si el token está próximo a expirar (dentro de 5 minutos)
+  private isTokenExpiringSoon(): boolean {
+    const expiry = localStorage.getItem('tokenExpiry');
+    if (!expiry) return false;
+    
+    const expiryDate = new Date(expiry);
+    const now = new Date();
+    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+    
+    return expiryDate <= fiveMinutesFromNow;
+  }
+
   // Guardar token y usuario en localStorage
-  setAuth(token: string, user: User): void {
+  setAuth(token: string, user: User, expiresIn?: number): void {
     try {
       // Guardar token
       localStorage.setItem('authToken', token);
       
-      // Verificar que se guardó correctamente
-      const storedToken = localStorage.getItem('authToken');
-      
-      if (!storedToken || storedToken !== token) {
-        throw new Error('Error al guardar el token en localStorage');
-      }
-      
       // Guardar usuario
       localStorage.setItem('user', JSON.stringify(user));
       
-      // Verificar que se guardó correctamente
-      const storedUser = localStorage.getItem('user');
-      
-      if (!storedUser) {
-        throw new Error('Error al guardar el usuario en localStorage');
+      // Guardar expiración si se proporciona (en segundos)
+      if (expiresIn) {
+        const expiryDate = new Date();
+        expiryDate.setSeconds(expiryDate.getSeconds() + expiresIn);
+        localStorage.setItem('tokenExpiry', expiryDate.toISOString());
       }
       
     } catch (error) {
@@ -59,11 +64,20 @@ class AuthService {
   logout(): void {
     localStorage.removeItem('authToken');
     localStorage.removeItem('user');
+    localStorage.removeItem('tokenExpiry');
   }
 
   // Verificar si el usuario está autenticado
   isAuthenticated(): boolean {
-    return !!this.getToken();
+    const token = this.getToken();
+    if (!token) return false;
+    
+    // Si el token está próximo a expirar, marcar como no autenticado
+    if (this.isTokenExpiringSoon()) {
+      return false;
+    }
+    
+    return true;
   }
 
   // Obtener headers de autorización
@@ -93,7 +107,11 @@ class AuthService {
     }
 
     const data: AuthResponse = await response.json();
-    this.setAuth(data.token, data.user);
+    
+    // Asumir que el token expira en 24 horas si no se especifica
+    const expiresIn = 24 * 60 * 60; // 24 horas en segundos
+    this.setAuth(data.token, data.user, expiresIn);
+    
     return data;
   }
 
@@ -113,7 +131,11 @@ class AuthService {
     }
 
     const data: AuthResponse = await response.json();
-    this.setAuth(data.token, data.user);
+    
+    // Asumir que el token expira en 24 horas si no se especifica
+    const expiresIn = 24 * 60 * 60; // 24 horas en segundos
+    this.setAuth(data.token, data.user, expiresIn);
+    
     return data;
   }
 
@@ -135,10 +157,11 @@ class AuthService {
       }
 
       const user: User = await response.json();
-      // Actualizar usuario en localStorage usando la clave correcta
+      // Actualizar usuario en localStorage
       localStorage.setItem('user', JSON.stringify(user));
       return user;
     } catch (error) {
+      console.error('Error verificando token:', error);
       this.logout();
       return null;
     }

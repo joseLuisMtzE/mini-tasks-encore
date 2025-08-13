@@ -70,11 +70,30 @@ export class AuthService {
    * Verifica y decodifica un token JWT
    */
   static verifyToken(token: string): JWTPayload {
+    console.log("🔍 AuthService: Verificando token JWT...");
+    console.log("🔑 Token recibido:", token.substring(0, 20) + "...");
+    
     try {
+      console.log("🔍 JWT_SECRET disponible:", !!JWT_SECRET());
+      console.log("🔍 JWT_OPTIONS:", JWT_OPTIONS);
+      
       const payload = jwt.verify(token, JWT_SECRET(), JWT_OPTIONS) as JWTPayload;
+      console.log("✅ Token verificado exitosamente, payload:", payload);
       return payload;
     } catch (error) {
-      console.error('Error verificando token:', error);
+      console.error('❌ Error verificando token:', error);
+      
+      // Proporcionar información específica sobre el tipo de error
+      if (error instanceof jwt.JsonWebTokenError) {
+        console.error('❌ Error JWT específico:', error.message);
+        if (error.message === 'jwt audience invalid') {
+          console.error('❌ Error de audience - el token no tiene el audience correcto');
+        }
+        if (error.message === 'jwt issuer invalid') {
+          console.error('❌ Error de issuer - el token no tiene el issuer correcto');
+        }
+      }
+      
       throw error;
     }
   }
