@@ -177,57 +177,70 @@ export const Dashboard: React.FC = () => {
 
         {/* Create Task Form */}
         {showCreateForm && (
-          <div className="mb-6 bg-white p-6 rounded-lg shadow">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Crear Nueva Tarea</h3>
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Título</label>
-                <input
-                  type="text"
-                  value={newTask.title}
-                  onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  required
-                />
+          <>
+            {/* Backdrop */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm z-40"
+              onClick={() => setShowCreateForm(false)}
+            />
+            
+            {/* Modal */}
+            <div className="fixed inset-0 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 text-start">
+                <div className="p-6">
+                  <h3 className="text-lg font-bold text-indigo-700 mb-4">Crear Nueva Tarea</h3>
+                  <form onSubmit={handleCreateTask} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-indigo-700">Título</label>
+                      <input 
+                        type="text"
+                        value={newTask.title}
+                        onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                        className="h-8 mt-1 pl-2 block w-full border border-gray-200 rounded-md sm:text-sm"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-indigo-700">Descripción</label>
+                      <textarea
+                        value={newTask.description}
+                        onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+                        className="mt-1 p-2 block w-full border border-gray-200 rounded-md sm:text-sm"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-indigo-700">Prioridad</label>
+                      <select
+                        value={newTask.priority}
+                        onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
+                        className="h-8 mt-1 block w-full border border-gray-200 rounded-md shadow-sm sm:text-sm"
+                      >
+                        <option value="low">Baja</option>
+                        <option value="medium">Media</option>
+                        <option value="high">Alta</option>
+                      </select>
+                    </div>
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => setShowCreateForm(false)}
+                        className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="submit"
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                      >
+                        Crear Tarea
+                      </button>
+                    </div>
+                  </form>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                <textarea
-                  value={newTask.description}
-                  onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Prioridad</label>
-                <select
-                  value={newTask.priority}
-                  onChange={(e) => setNewTask({ ...newTask, priority: e.target.value as any })}
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-                >
-                  <option value="low">Baja</option>
-                  <option value="medium">Media</option>
-                  <option value="high">Alta</option>
-                </select>
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateForm(false)}
-                  className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-                >
-                  Crear Tarea
-                </button>
-              </div>
-            </form>
-          </div>
+            </div>
+          </>
         )}
 
         {/* Tasks List */}
